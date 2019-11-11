@@ -1,0 +1,94 @@
+push = require 'push'
+WINDOW_WIDTH = 1280
+WINDOW_HEIGHT = 720
+VIRTUAL_WIDTH = 432
+VIRTUAL_HEIGHT = 243
+PADDLE_SPEED = 200
+function love.load()
+	love.graphics.setDefaultFilter('nearest', 'nearest')
+	math.randomseed(os.time())
+
+	smallFont = love.graphics.newFont('font.ttf', 8)
+	scoreFont = love.graphics.newFont('font.ttf', 32)
+
+	love.graphics.setFont(smallFont)
+	push:setupScreen(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT, {
+		fullscreen = false,
+		resizable = false, 
+		vsync = true
+	})
+
+	player1Score = 0
+	player2Score = 0
+
+	player1Y = 30
+	player2Y = VIRTUAL_HEIGHT - 30 - 20
+
+	ballX = VIRTUAL_WIDTH / 2 - 2;
+	ballY = VIRTUAL_HEIGHT / 2 - 2;
+	-- 水平方向的速度，决定了在两个杆之间往返的时间
+	-- 竖直方向的速度，改变方向
+	ballDX = math.random(2) == 1 and 100 or -100
+	ballDY = math.random(-50, 50)
+
+	gameState = 'start'
+end
+
+-- w, s, up, down,写在love.update(dt)而不是love.keypressed(key)里，是因为杆要根据dt实现上下移动，而love.keypressed(key)中不存在dt
+-- 同样的，球的移动，也要在dt中
+function love.update(dt)
+	if love.keyboard.isDown('w') then
+		player1Y = player1Y - PADDLE_SPEED * dt
+	elseif love.keyboard.isDown('s') then
+		player1Y = player1Y + PADDLE_SPEED * dt
+	end
+
+	if love.keyboard.isDown('up') then
+		player2Y = player2Y - PADDLE_SPEED * dt
+	elseif love.keyboard.isDown('down') then
+		player2Y = player2Y + PADDLE_SPEED * dt
+	end
+
+	if gameState == 'play' then
+		ballX = ballX + ballDX * dt
+		ballY = ballY + ballDY * dt
+	end
+
+end
+
+function love.keypressed(key)
+	if key == 'escape' then
+		love.event.quit()
+	elseif key == 'enter' or key == 'return' then
+		if gameState == 'start' then
+			gameState = 'play'
+		else
+			gameState = 'start'
+
+			ballX = VIRTUAL_WIDTH / 2 - 2
+			ballY = VIRTUAL_HEIGHT / 2 - 2
+			-- 在开始状态下，就准备好球的初速度, 一进入play状态，球就会移动啦
+			ballDX = math.random(2) == 1 and 100 or -100
+			ballDY = math.random(-50, 50) * 1.5 -- * 1.5 意味着球更偏上和偏下。
+		end
+	end
+end
+
+function love.draw()
+	push:apply('start')
+	-- gray background
+	love.graphics.clear(40, 45, 52, 255)
+	-- Hello Pong
+	love.graphics.setFont(smallFont)
+	love.graphics.printf('Hello Pong!', 0, 20, VIRTUAL_WIDTH, 'center')
+	-- 分数
+	love.graphics.setFont(scoreFont)
+	love.graphics.print(tostring(player1Score), VIRTUAL_WIDTH / 2 - 50, VIRTUAL_HEIGHT / 3)
+	love.graphics.print(tostring(player2Score), VIRTUAL_WIDTH / 2 + 30, VIRTUAL_HEIGHT / 3)
+	-- draw paddles depend on player1Y and player2Y 
+	love.graphics.rectangle('fill', 10, player1Y, 5, 20)
+	love.graphics.rectangle('fill', VIRTUAL_WIDTH - 10 - 5, player2Y, 5, 20)
+	-- draw ball depend on ballX and ballY
+	love.graphics.rectangle('fill', ballX, ballY, 4, 4)
+	push:apply('end')
+end
